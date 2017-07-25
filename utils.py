@@ -17,7 +17,6 @@ def get_mean_and_std(dataset):
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = torch.zeros(3)
     std = torch.zeros(3)
-    print('==> Computing mean and std..')
     for inputs, targets in dataloader:
         for i in range(3):
             mean[i] += inputs[:,i,:,:].mean()
@@ -56,13 +55,13 @@ def progress_bar(current, total, msg=None):
     cur_len = int(TOTAL_BAR_LENGTH*current/total)
     rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
 
-    sys.stdout.write(' [')
+    sys.stderr.write(' [')
     for i in range(cur_len):
-        sys.stdout.write('=')
-    sys.stdout.write('>')
+        sys.stderr.write('=')
+    sys.stderr.write('>')
     for i in range(rest_len):
-        sys.stdout.write('.')
-    sys.stdout.write(']')
+        sys.stderr.write('.')
+    sys.stderr.write(']')
 
     cur_time = time.time()
     step_time = cur_time - last_time
@@ -76,20 +75,20 @@ def progress_bar(current, total, msg=None):
         L.append(' | ' + msg)
 
     msg = ''.join(L)
-    sys.stdout.write(msg)
+    sys.stderr.write(msg)
     for i in range(term_width-int(TOTAL_BAR_LENGTH)-len(msg)-3):
-        sys.stdout.write(' ')
+        sys.stderr.write(' ')
 
     # Go back to the center of the bar.
     for i in range(term_width-int(TOTAL_BAR_LENGTH/2)+2):
-        sys.stdout.write('\b')
-    sys.stdout.write(' %d/%d ' % (current+1, total))
+        sys.stderr.write('\b')
+    sys.stderr.write(' %d/%d ' % (current+1, total))
 
     if current < total-1:
-        sys.stdout.write('\r')
+        sys.stderr.write('\r')
     else:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
+        sys.stderr.write('\n')
+    sys.stderr.flush()
 
 def format_time(seconds):
     days = int(seconds / 3600/24)

@@ -70,6 +70,36 @@ class PreActBlock(nn.Module):
         return out
 
 
+class PreActBlock_2(nn.Module):
+    '''Pre-activation version of the BasicBlock.'''
+    expansion = 1
+
+    def __init__(self, in_planes, planes, stride=1):
+        super(PreActBlock_2, self).__init__()
+        self.bn1 = nn.BatchNorm2d(in_planes)
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        
+        self.conv_shortcut = False
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.conv_shortcut = True
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False)
+            )
+
+    def forward(self, x):
+        out = F.relu(self.bn1(x))
+        if self.conv_shortcut:
+            shortcut = self.shortcut(out)
+        else:
+            shortcut = self.shortcut(x)
+        out = self.conv1(out)
+        out = self.conv2(F.relu(self.bn2(out)))
+        out += shortcut
+        return out
+
 class Bottleneck(nn.Module):
     expansion = 4
 
@@ -113,13 +143,17 @@ class PreActBottleneck(nn.Module):
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
+            self.conv_shortcut = True
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False)
             )
 
     def forward(self, x):
         out = F.relu(self.bn1(x))
-        shortcut = self.shortcut(out)
+        if self.conv_shortcut:
+            shortcut = self.shortcut(out)
+        else:
+            shortcut = self.shortcut(x)
         out = self.conv1(out)
         out = self.conv2(F.relu(self.bn2(out)))
         out = self.conv3(F.relu(self.bn3(out)))
@@ -163,8 +197,11 @@ class ResNet(nn.Module):
 def ResNet18():
     return ResNet(PreActBlock, [2,2,2,2])
 
+def ResNet18_2():
+    return ResNet(PreActBlock_2, [2,2,2,2])
+
 def ResNet34():
-    return ResNet(BasicBlock, [3,4,6,3])
+    return ResNet(PreActBlock_2, [3,4,6,3])
 
 def ResNet50():
     return ResNet(Bottleneck, [3,4,6,3])
