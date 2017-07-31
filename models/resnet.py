@@ -67,6 +67,45 @@ class PreActBlock(nn.Module):
         out += shortcut
         return out
 
+class DeadBasicBlock(nn.Module):
+    expansion = 1
+    
+    def __init__(self, in_planes, planes, stride=1, death_rate=0.0):
+        super(PreActBlock, self).__init__()
+        self.bn1 = nn.BatchNorm2d(in_planes)
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        
+        self.death_rate = death_rate
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False)
+            )
+
+    def _live_forward(self, x):
+        out = F.relu(self.bn1(x))
+        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
+        out = self.conv1(out)
+        out = self.conv2(F.relu(self.bn2(out)))
+        out += shortcut
+        return out
+    
+    def _dead_forward(self, x):
+        if hasattr(self, 'shortcut'):
+            out = F.relu(self.bn1(x))
+            shortcut = self.shortcut(out)
+        else:
+            shortcut = x
+        
+        return shortcut
+    
+    def forward(self, x):
+        if torch.rand(1)[0] < self.death_rate:
+            return self._dead_forward(s)
+        else:
+            return self._live_forward(x)
+
 
 class Bottleneck(nn.Module):
     expansion = 4

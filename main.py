@@ -27,13 +27,13 @@ from utils import progress_bar
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--net', type=str, default='resnet18_2')
-    parser.add_argument('--outpath', type=str)
+    parser.add_argument('--net', type=str, default='resnet18')
+    parser.add_argument('--model-name', type=str)
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--lr-schedule', type=str, default='linear')
     args = parser.parse_args()
-    if not args.outpath:
-        args.outpath = './results/%s-%s-%d' % (args.net.lower(), args.lr_schedule, args.epochs)
+    if not args.model_name:
+        args.model_name = '%s-%s-%d' % (args.net.lower(), args.lr_schedule, args.epochs)
     return args
 
 args = parse_args()
@@ -41,7 +41,6 @@ args = parse_args()
 nets = {
     'vgg' : VGG,
     'resnet18' : ResNet18,
-    'resnet18_2' : ResNet18_2,
     'resnet34' : ResNet50,
     'googlenet' : GoogLeNet,
     'densenet121' : DenseNet121,
@@ -182,6 +181,9 @@ for epoch in range(0, args.epochs):
     
     print json.dumps({'train_acc' : train_acc, 'test_acc' : test_acc})
 
-model_path = args.outpath + '.state'
+if not os.path.exists('./results/states'):
+    _ = os.makedirs('./results/states')
+
+model_path = os.path.join('results', 'states', args.model_name)
 print >> sys.stderr, 'saving model: %s' % model_path
 torch.save(net.state_dict(), model_path)
