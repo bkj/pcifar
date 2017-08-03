@@ -16,6 +16,9 @@ CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 250 > ./results/resnet18-linear-250
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 300 > ./results/resnet18-linear-300
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 350 > ./results/resnet18-linear-350
 
+CUDA_VISIBLE_DEVICES=1 ./main.py --net deadnet18 --epochs 100 > ./results/deadnet18-linear-100
+CUDA_VISIBLE_DEVICES=1 ./main-split.py --epochs 100 > ./results/splitnet34-linear-100
+
 # --
 # Densenet
 

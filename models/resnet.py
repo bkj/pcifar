@@ -42,6 +42,62 @@ class BasicBlock(nn.Module):
         out = F.relu(out)
         return out
 
+class NoBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, in_planes, planes, stride=1):
+        super(NoBlock, self).__init__()
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.conv2 = conv3x3(planes, planes)
+        
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+            )
+
+    def forward(self, x):
+        out = F.relu(self.conv1(x))
+        out = self.conv2(out)
+        out += self.shortcut(x) if hasattr(self, 'shortcut') else x
+        out = F.relu(out)
+        return out
+
+class DeadBasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, in_planes, planes, stride=1, death_rate=0.25):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(self.expansion*planes)
+            )
+    
+    def _live_forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        
+        if not self.training:
+            out *= (1 - self.death_rate)
+        
+        out += self.shortcut(x) if hasattr(self, 'shortcut') else x
+        out = F.relu(out)
+        return out
+    
+    def _dead_forward(self, x):
+        return self.shortcut(x) if hasattr(self, 'shortcut') else x
+    
+    def forward(self, x):
+        if self.training and (torch.rand(1)[0] < self.death_rate):
+            return self._dead_forward(x)
+        else:
+            return self._live_forward(x) 
+
 
 class PreActBlock(nn.Module):
     '''Pre-activation version of the BasicBlock.'''
@@ -67,11 +123,12 @@ class PreActBlock(nn.Module):
         out += shortcut
         return out
 
-class DeadBasicBlock(nn.Module):
+
+class DeadPreActBlock(nn.Module):
     expansion = 1
     
-    def __init__(self, in_planes, planes, stride=1, death_rate=0.0):
-        super(PreActBlock, self).__init__()
+    def __init__(self, in_planes, planes, stride=1, death_rate=0.25):
+        super(DeadBasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = conv3x3(in_planes, planes, stride)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -88,24 +145,59 @@ class DeadBasicBlock(nn.Module):
         shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
         out = self.conv1(out)
         out = self.conv2(F.relu(self.bn2(out)))
+        
+        if not self.training:
+            out *= (1 - self.death_rate)
+            
         out += shortcut
         return out
     
     def _dead_forward(self, x):
-        if hasattr(self, 'shortcut'):
-            out = F.relu(self.bn1(x))
-            shortcut = self.shortcut(out)
-        else:
-            shortcut = x
-        
-        return shortcut
+        return self.shortcut(F.relu(self.bn1(x))) if hasattr(self, 'shortcut') else x
     
     def forward(self, x):
-        if torch.rand(1)[0] < self.death_rate:
-            return self._dead_forward(s)
+        if self.training and (torch.rand(1)[0] < self.death_rate):
+            return self._dead_forward(x)
         else:
-            return self._live_forward(x)
+            return self._live_forward(x) 
 
+
+class DeadPreActBlock(nn.Module):
+    expansion = 1
+    
+    def __init__(self, in_planes, planes, stride=1, death_rate=0.25):
+        super(DeadBasicBlock, self).__init__()
+        self.bn1 = nn.BatchNorm2d(in_planes)
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        
+        self.death_rate = death_rate
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False)
+            )
+
+    def _live_forward(self, x):
+        out = F.relu(self.bn1(x))
+        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
+        out = self.conv1(out)
+        out = self.conv2(F.relu(self.bn2(out)))
+        
+        if not self.training:
+            out *= (1 - self.death_rate)
+            
+        out += shortcut
+        return out
+    
+    def _dead_forward(self, x):
+        return self.shortcut(F.relu(self.bn1(x))) if hasattr(self, 'shortcut') else x
+    
+    def forward(self, x):
+        if self.training and (torch.rand(1)[0] < self.death_rate):
+            return self._dead_forward(x)
+        else:
+            return self._live_forward(x) 
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -194,12 +286,85 @@ class ResNet(nn.Module):
         out = self.linear(out)
         return out
 
+# >>
+class SplitBlock(nn.Module):
+    expansion = 1
+    
+    def __init__(self, in_planes, planes, stride=1):
+        super(SplitBlock, self).__init__()
+        self.bn1 = nn.BatchNorm2d(in_planes)
+        self.conv1 = conv3x3(in_planes, planes, stride)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        
+        if stride != 1 or in_planes != self.expansion*planes:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False)
+            )
+
+    def _live_forward(self, x):
+        out = F.relu(self.bn1(x))
+        shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
+        out = self.conv1(out)
+        out = self.conv2(F.relu(self.bn2(out)))
+        
+        if not self.training:
+            out *= 0.5
+            
+        out += shortcut
+        return out
+    
+    def _dead_forward(self, x):
+        return self.shortcut(F.relu(self.bn1(x))) if hasattr(self, 'shortcut') else x
+    
+    def forward(self, x):
+        if self.training: 
+            live = self._live_forward(x[0])
+            dead = self._dead_forward(x[1])
+            if torch.rand(1)[0] > 0.5:
+                return live, dead
+            else:
+                return dead, live
+        else:
+            live = self._live_forward(x[0])
+            return live, live
+
+
+class SplitNet(ResNet):
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        outs = self.layer1([out, out])
+        outs = self.layer2(outs)
+        outs = self.layer3(outs)
+        outs = self.layer4(outs)
+        
+        out_a, out_b = outs
+        
+        out_a = F.avg_pool2d(out_a, 4)
+        out_a = out_a.view(out_a.size(0), -1)
+        out_a = self.linear(out_a)
+        
+        out_b = F.avg_pool2d(out_b, 4)
+        out_b = out_b.view(out_b.size(0), -1)
+        out_b = self.linear(out_b)
+        
+        return out_a, out_b
+# <<
 
 def ResNet18():
     return ResNet(PreActBlock, [2,2,2,2])
 
+def DeadNet18():
+    return ResNet(DeadPreActBlock, [2,2,2,2])
+
 def ResNet34():
     return ResNet(BasicBlock, [3,4,6,3])
+
+def NoNet34():
+    return ResNet(NoBlock, [3,4,6,3])
+
+def DeadNet34():
+    return ResNet(DeadPreActBlock, [3,4,6,3])
 
 def ResNet50():
     return ResNet(Bottleneck, [3,4,6,3])
@@ -210,6 +375,10 @@ def ResNet101():
 def ResNet152():
     return ResNet(Bottleneck, [3,8,36,3])
 
+# >>
+def SplitNet34():
+    return SplitNet(SplitBlock, [3,4,6,3])
+# <<
 
 def test():
     net = ResNet18()

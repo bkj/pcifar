@@ -41,7 +41,10 @@ args = parse_args()
 nets = {
     'vgg' : VGG,
     'resnet18' : ResNet18,
-    'resnet34' : ResNet50,
+    'deadnet18' : DeadNet18,
+    'resnet34' : ResNet34,
+    'nonet34' : NoNet34,
+    'deadnet34' : DeadNet34,
     'googlenet' : GoogLeNet,
     'densenet121' : DenseNet121,
     'resnext29_2x64d' : ResNeXt29_2x64d,
