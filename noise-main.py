@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import argparse
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -91,6 +92,17 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 # --
 # Helpers
 
+data, targets = next(iter(trainloader))
+
+def fix_data(data, targets):
+    # !! Want to add ability to chance prevalance of noise
+    noise_sel = (targets != 3) & (targets != 5)
+    targets[targets == 3] = 0
+    targets[targets == 5] = 1
+    targets[noise_sel] = torch.LongTensor(np.random.choice((0, 1), noise_sel.sum()))
+    return data, targets
+    
+
 def train(epoch):
     print >> sys.stderr, "Epoch=%d" % epoch
     _ = net.train()
@@ -98,6 +110,11 @@ def train(epoch):
     correct = 0
     total = 0
     for batch_idx, (data, targets) in enumerate(trainloader):
+        
+        # <<
+        data, targets = fix_data(data, targets)
+        # >>
+        
         data, targets = Variable(data.cuda()), Variable(targets.cuda())
         
         optimizer.zero_grad()
