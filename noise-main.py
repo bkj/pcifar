@@ -92,14 +92,20 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 # --
 # Helpers
 
-data, targets = next(iter(trainloader))
+# data, targets = next(iter(trainloader))
 
 def fix_data(data, targets):
     # !! Want to add ability to chance prevalance of noise
-    noise_sel = (targets != 3) & (targets != 5)
-    targets[targets == 3] = 0
+    noise_sel = (targets != 0) & (targets != 5)
+    targets[targets == 0] = 0
     targets[targets == 5] = 1
     targets[noise_sel] = torch.LongTensor(np.random.choice((0, 1), noise_sel.sum()))
+    
+    # sel = torch.nonzero((targets == 0) | (targets == 5)).squeeze()
+    # targets = targets[sel]
+    # targets[targets == 0] = 0
+    # targets[targets == 5] = 1
+    # data = data[sel]
     return data, targets
     
 
@@ -142,15 +148,15 @@ def test(epoch):
     for batch_idx, (inputs, targets) in enumerate(testloader):
         inputs, targets = Variable(inputs.cuda(), volatile=True), Variable(targets.cuda())
         outputs = net(inputs)
-        loss = F.cross_entropy(outputs, targets)
+        # loss = F.cross_entropy(outputs, targets)
         
-        test_loss += loss.data[0]
+        # test_loss += loss.data[0]
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
         
         progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            % (1.0/(batch_idx+1), 100.*correct/total, correct, total))
     
     return float(correct) / total
 
@@ -201,9 +207,9 @@ for epoch in range(0, args.epochs):
     
     print json.dumps({'train_acc' : train_acc, 'test_acc' : test_acc})
 
-if not os.path.exists('./results/states'):
-    _ = os.makedirs('./results/states')
+if not os.path.exists('./noise-results/states'):
+    _ = os.makedirs('./noise-results/states')
 
-model_path = os.path.join('results', 'states', args.model_name)
+model_path = os.path.join('noise-results', 'states', args.model_name)
 print >> sys.stderr, 'saving model: %s' % model_path
 torch.save(net.state_dict(), model_path)
