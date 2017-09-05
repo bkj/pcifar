@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-    main.py
+    nas-main.py
 """
 
 from __future__ import division
@@ -22,7 +22,9 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 
-from models import *
+from nas import *
+
+sys.path.append('..')
 from utils import progress_bar
 
 cudnn.benchmark = True
@@ -32,33 +34,19 @@ cudnn.benchmark = True
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--net', type=str, default='resnet18')
-    parser.add_argument('--model-name', type=str)
+    parser.add_argument('--net', type=str, default='nas')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--lr-schedule', type=str, default='linear')
-    parser.add_argument('--lr-smooth', action='store_true')
     parser.add_argument('--lr-init', type=float, default=0.1)
+    parser.add_argument('--model-name', type=str)
     args = parser.parse_args()
     if not args.model_name:
-        args.model_name = '%s-%s-%d' % (args.net.lower(), args.lr_schedule, args.epochs)
+        args.model_name = '%s-%d-%s-%0.2f' % (args.net.lower(), args.epochs, args.lr_schedule, args.lr_init)
+        print >> sys.stderr, args.model_name
+    
     return args
 
 args = parse_args()
-
-nets = {
-    'vgg' : VGG,
-    'resnet18' : ResNet18,
-    'deadnet18' : DeadNet18,
-    'resnet34' : ResNet34,
-    'nonet34' : NoNet34,
-    'deadnet34' : DeadNet34,
-    'googlenet' : GoogLeNet,
-    'densenet121' : DenseNet121,
-    'resnext29_2x64d' : ResNeXt29_2x64d,
-    'mobilenet' : MobileNet,
-    'dpn92' : DPN92,
-    'shufflenetg2' : ShuffleNetG2,
-}
 
 # --
 # IO
@@ -75,7 +63,7 @@ transform_test = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), # !! ??
 ])
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_train)
+trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=False, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(
     trainset, 
     batch_size=128, 
@@ -84,7 +72,7 @@ trainloader = torch.utils.data.DataLoader(
     pin_memory=True
 )
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform_test)
+testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=False, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, 
     batch_size=256, 
@@ -137,25 +125,17 @@ def lr_schedule_linear(x, lr_init=args.lr_init, epochs=args.epochs):
     return lr_init * float(epochs - x) / epochs
 
 def lr_schedule_cyclical(x, lr_init=args.lr_init, epochs=args.epochs):
+    """ Cyclical learning rate w/ annealing """
     if x < 1:
         # Start w/ small learning rate
         return 0.05
     else:
         return lr_init * (1 - x % 1) * (epochs - np.floor(x)) / epochs
 
-def lr_schedule_cyclical_c(x, lr_init=args.lr_init, epochs=args.epochs):
-    if x < 1:
-        # Start w/ small learning rate
-        return 0.05
-    else:
-        return lr_init * (1 - x % 1)
-
-
 lr_schedules = {
     "step" : lr_schedule_step,
     "linear" : lr_schedule_linear,
     "cyclical" : lr_schedule_cyclical,
-    "cyclical_c" : lr_schedule_cyclical_c,
 }
 
 lr_schedule = lr_schedules[args.lr_schedule]
@@ -163,19 +143,20 @@ lr_schedule = lr_schedules[args.lr_schedule]
 # --
 # Define model
 
+outfile = open(os.path.join('results', args.model_name + '.jl'), 'w')
+
 batches_per_epoch = len(trainloader)
 
-net = nets[args.net]().cuda()
+# ResNet18
+op_keys = ('double_bnconv_3', 'identity', 'add')
+red_op_keys = ('double_bnconv_3', 'conv_1', 'add')
+net = RNet(op_keys, red_op_keys).cuda() 
 print >> sys.stderr, net
 
 optimizer = optim.SGD(net.parameters(), lr=lr_schedule(0), momentum=0.9, weight_decay=5e-4)
 
 train_accs, test_accs = [], []
 for epoch in range(0, args.epochs):
-    
-    if not args.lr_smooth:
-        set_lr(optimizer, lr_schedule(epoch))
-    
     # Epoch of training
     print >> sys.stderr, "Epoch=%d" % epoch
     _ = net.train()
@@ -184,15 +165,12 @@ for epoch in range(0, args.epochs):
     total = 0
     for batch_idx, (data, targets) in enumerate(trainloader):
         
-        # Set learning rate
-        # !! How much time does it waste putting this in the inner loop?
-        # !! I don't think much...
-        if args.lr_smooth:
-            set_lr(optimizer, lr_schedule(epoch + batch_idx / batches_per_epoch))
+        set_lr(optimizer, lr_schedule(epoch + batch_idx / batches_per_epoch))
         
         data, targets = Variable(data.cuda()), Variable(targets.cuda())
         
         optimizer.zero_grad()
+        
         outputs = net(data)
         loss = F.cross_entropy(outputs, targets)
         loss.backward()
@@ -212,7 +190,7 @@ for epoch in range(0, args.epochs):
     train_accs.append(train_acc)
     test_accs.append(test_acc)
     
-    print json.dumps({'epoch' : epoch, 'train_acc' : train_acc, 'test_acc' : test_acc})
+    outfile.write(json.dumps({'epoch' : epoch, 'train_acc' : train_acc, 'test_acc' : test_acc}))
 
 if not os.path.exists('./results/states'):
     _ = os.makedirs('./results/states')
