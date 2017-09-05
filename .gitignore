@@ -1,3 +1,5 @@
+nas/results/*
+nas/data/*
 data/*
 results/*
 *pyc
