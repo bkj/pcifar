@@ -3,7 +3,7 @@
 """
     download-datasets.py
     
-    Download (most of) the datasets 
+    Download (most of) the `torchvision` datasets 
 """
 
 

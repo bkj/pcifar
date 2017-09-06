@@ -2,9 +2,10 @@
 """
     nas.py
     
-    Neural architecture search models
+    Models for NAS
 """
 
+import sys
 import numpy as np
 
 import torch
@@ -96,17 +97,6 @@ combs = {
     'mul' : torch.mul,
 }
 
-
-# Test that all ops preserve size
-def test_ops(ops, orig_size=(16, 3, 10, 10)):
-    x = Variable(torch.rand(orig_size))
-    for k, op in ops.iteritems():
-        f = ops[k](orig_size[1])
-        assert f(x).size() == orig_size
-
-test_ops(ops)
-
-
 class RBlock(nn.Module):
     """ Random convolutional block """
     def __init__(self, channels, ops, op_keys):
@@ -191,11 +181,18 @@ class RNet(nn.Module):
         out = F.avg_pool2d(x, x.size(-1))
         out = out.view(out.size(0), -1)
         return self.linear(out)
-
+    
+    def train_step(self, data, targets, optimizer):
+        optimizer.zero_grad()
+        outputs = self(data)
+        loss = F.cross_entropy(outputs, targets)
+        loss.backward()
+        optimizer.step()
+        return outputs, loss.data[0]
 
 
 if __name__ == "__main__":
     op_keys = ('double_bnconv_3', 'identity', 'add')
     red_op_keys = ('double_bnconv_3', 'conv_1', 'add')
     net = RNet(op_keys, red_op_keys)
-    net
+    print >> sys.stderr, net
