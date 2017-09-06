@@ -6,7 +6,10 @@
 """
 
 import sys
+import json
 import numpy as np
+from hashlib import md5
+from datetime import datetime
 
 import torch
 from torch import nn
@@ -190,6 +193,24 @@ class RNet(nn.Module):
         optimizer.step()
         return outputs, loss.data[0]
 
+
+def sample_config():
+    
+    op_keys = sorted(np.random.choice(ops.keys(), 2)) + ['add']
+    # !! Don't want double-pool blocks
+    while ('pool' in op_keys[0]) and ('pool' in op_keys[1]):
+        op_keys = sorted(np.random.choice(ops.keys(), 2)) + ['add']
+    
+    red_op_keys = sorted(np.random.choice(red_ops.keys(), 2)) + ['add']
+    
+    config = {
+        'timestamp'   : datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+        'op_keys'     : op_keys,
+        'red_op_keys' : red_op_keys,
+    }
+    
+    config['model_name'] = md5(json.dumps(config)).hexdigest()
+    return config
 
 if __name__ == "__main__":
     op_keys = ('double_bnconv_3', 'identity', 'add')

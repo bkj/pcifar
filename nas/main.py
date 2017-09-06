@@ -24,6 +24,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from nas import *
+from data import *
 from lr import LRSchedule
 
 sys.path.append('..')
@@ -56,35 +57,7 @@ lr_schedule = functools.partial(lr_schedule, lr_init=args.lr_init, epochs=args.e
 # --
 # IO
 
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), # !! ??
-])
-
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), # !! ??
-])
-
-trainset = torchvision.datasets.CIFAR10(root='./data/CIFAR10', train=True, download=False, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(
-    trainset, 
-    batch_size=128, 
-    shuffle=True, 
-    num_workers=8,
-    pin_memory=True
-)
-
-testset = torchvision.datasets.CIFAR10(root='./data/CIFAR10', train=False, download=False, transform=transform_test)
-testloader = torch.utils.data.DataLoader(
-    testset, 
-    batch_size=256, 
-    shuffle=False, 
-    num_workers=8,
-    pin_memory=True,
-)
+ds = CIFAR10()
 
 # --
 # Helpers
