@@ -84,10 +84,10 @@ ops = {
 red_ops = {
     "conv_1" : lambda c: nn.Conv2d(c, c * 2, kernel_size=1, padding=0, stride=2, bias=False),
     "conv_3" : lambda c: nn.Conv2d(c, c * 2, kernel_size=3, padding=1, stride=2, bias=False),
-
+    
     "bnconv_1" : lambda c: BNConv(c, c * 2, kernel_size=1, padding=0, stride=2),
     "bnconv_3" : lambda c: BNConv(c, c * 2, kernel_size=3, padding=1, stride=2),
-
+    
     "double_bnconv_1" : lambda c: DoubleBNConv(c, c * 2, kernel_size=1, padding=0, stride=2),
     "double_bnconv_3" : lambda c: DoubleBNConv(c, c * 2, kernel_size=3, padding=1, stride=2),
 }
