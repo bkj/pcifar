@@ -1,4 +1,4 @@
-# #!/usr/bin/env python
+#!/usr/bin/env python
 
 """
     grid-point.py
@@ -30,27 +30,20 @@ from lr import LRSchedule
 
 cudnn.benchmark = True
 
-run = 0
-file_prefix = os.path.join('results', 'grid', str(run))
-
-for p in ['states', 'configs', 'hists']:
-    p = os.path.join(file_prefix, p)
-    if not os.path.exists(p):
-        _ = os.makedirs(p)
-
-print >> sys.stderr, 'grid-point.py: starting'
-
 # --
-# Params
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--lr-schedule', type=str, default='linear')
     parser.add_argument('--lr-init', type=float, default=0.1)
+    parser.add_argument('--run', type=int, default=0)
     return parser.parse_args()
 
 args = parse_args()
+
+# --
+# Params
 
 # Set learning rate schedule
 lr_schedule = getattr(LRSchedule, args.lr_schedule)
@@ -63,6 +56,18 @@ ds = CIFAR10()
 config = sample_config()
 config.update({'args' : vars(args)})
 print >> sys.stderr, json.dumps(config)
+
+# --
+# Setup outpath
+
+file_prefix = os.path.join('results', 'grid', str(args.run))
+
+for p in ['states', 'configs', 'hists']:
+    p = os.path.join(file_prefix, p)
+    if not os.path.exists(p):
+        _ = os.makedirs(p)
+
+print >> sys.stderr, 'grid-point.py: starting'
 
 config_path = os.path.join(file_prefix, 'configs', config['model_name'])
 hist_path = os.path.join(file_prefix, 'hists', config['model_name'])
