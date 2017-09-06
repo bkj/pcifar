@@ -27,7 +27,6 @@ import torchvision.transforms as transforms
 from nas import RNet, sample_config
 from data import *
 from lr import LRSchedule
-from utils import progress_bar
 
 cudnn.benchmark = True
 
