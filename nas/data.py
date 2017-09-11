@@ -64,6 +64,7 @@ def basic(name, center=False, hflip=False):
         'n_train_batches' : n_train_batches,
         'n_val_batches'   : n_val_batches,
         'n_test_batches'  : n_test_batches,
+        'n_classes' : len(train_loader.dataset.classes),
     }
 
 def MNIST():
@@ -133,5 +134,6 @@ def CIFAR(name='CIFAR10'):
         'n_train_batches' : n_train_batches,
         'n_val_batches'   : n_val_batches,
         'n_test_batches'  : n_test_batches,
+        'n_classes' : len(train_loader.dataset.classes),
     }
 
