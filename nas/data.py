@@ -82,8 +82,7 @@ def STL10():
     return basic('STL10', center=True, hflip=True)
 
 
-def CIFAR10():
-    name = 'CIFAR10'
+def CIFAR(name='CIFAR10'):
     
     mn = (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
     

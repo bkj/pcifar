@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in $(seq 100); do ./grid-point.py --run 1; done
-for i in $(seq 100); do ./grid-point.py --run 1 --lr-schedule cyclical ; done
-
-for i in $(seq 1000); do ./grid-point.py --run 1; done
+for i in $(seq 10000); do
+    CUDA_VISIBLE_DEVICES=0 ./grid-point.py --run e100 --epochs 100
+    CUDA_VISIBLE_DEVICES=0 ./grid-point.py --run e100 --lr-schedule cyclical --epochs 100
+done

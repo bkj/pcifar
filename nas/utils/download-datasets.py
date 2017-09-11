@@ -11,6 +11,7 @@
 
 import os
 import sys
+from tqdm import tqdm
 from torchvision import datasets
 
 # --
@@ -49,6 +50,12 @@ name = 'CIFAR10'
 print >> sys.stderr, name
 save(name, datasets.CIFAR10(os.path.join(root, name), download=True, train=True), 'train')
 save(name, datasets.CIFAR10(os.path.join(root, name), download=True, train=False), 'test')
+
+
+name = 'CIFAR100'
+print >> sys.stderr, name
+save(name, datasets.CIFAR100(os.path.join(root, name), download=True, train=True), 'train')
+save(name, datasets.CIFAR100(os.path.join(root, name), download=True, train=False), 'test')
 
 
 name = 'SVHN'

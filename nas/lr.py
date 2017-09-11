@@ -16,6 +16,10 @@ class LRSchedule(object):
             param_group['lr'] = lr
     
     @staticmethod
+    def constant(x, lr_init=0.1, epochs=10):
+        return lr_init
+    
+    @staticmethod
     def step(x, breaks=(150, 250)):
         if x < breaks[0]:
             return 0.1

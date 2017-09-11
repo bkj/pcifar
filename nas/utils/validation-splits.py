@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 train_size = 0.9
 random_state = 123
 
-names = ['MNIST', 'fashionMNIST', 'STL10', 'CIFAR10', 'SVHN']
+names = ['MNIST', 'fashionMNIST', 'STL10', 'CIFAR10', 'CIFAR100', 'SVHN']
 
 for name in names:
     root = os.path.abspath(os.path.join('data', 'manual', name))

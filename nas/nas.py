@@ -97,7 +97,7 @@ red_ops = {
 
 combs = {
     'add' : torch.add,
-    'mul' : torch.mul,
+    # 'mul' : torch.mul,
 }
 
 class RBlock(nn.Module):
@@ -119,11 +119,6 @@ class RNet(nn.Module):
     """ Random convolutional model """
     def __init__(self, op_keys, red_op_keys, block_sizes=(2, 1, 1, 1), init_channels=64, num_classes=10):
         super(RNet, self).__init__()
-        
-        # Can't both be pooling -- that's a silly model
-        pool_1 = 'pool' in op_keys[0]
-        pool_2 = 'pool' in op_keys[1]
-        assert(not (pool_1 and pool_2))
         
         self.op_keys = op_keys
         self.red_op_keys = red_op_keys
