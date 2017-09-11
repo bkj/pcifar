@@ -57,6 +57,7 @@ def parse_args():
     return args, config
 
 args, config = parse_args()
+print >> sys.stderr, 'grid-point.py: starting'
 
 # --
 # Params
@@ -78,25 +79,29 @@ config.update({'args' : vars(args)})
 print >> sys.stderr, 'config: %s' % json.dumps(config)
 
 # Set dataset
-ds = CIFAR10()
+if args.dataset == 'CIFAR10':
+    ds = CIFAR(name='CIFAR10')
+elif args.dataset == 'CIFAR100':
+    ds = CIFAR(name='CIFAR100')
+else:
+    raise Exception('!! unknown dataset')
 
-# Set learning rate schedule
-lr_schedule = getattr(LRSchedule, args.lr_schedule)
-lr_schedule = functools.partial(lr_schedule, lr_init=args.lr_init, epochs=args.epochs)
+# Set output
+p = os.path.join(file_prefix, 'configs')
+if not os.path.exists(p):
+    _ = os.makedirs(p)
 
-
-# --
-# Setup output
-
-for p in ['states', 'configs', 'hists']:
-    p = os.path.join(file_prefix, p)
+for p in ['states', 'hists']:
+    p = os.path.join(file_prefix, args.dataset, p)
     if not os.path.exists(p):
         _ = os.makedirs(p)
 
-print >> sys.stderr, 'grid-point.py: starting'
+hist_path = os.path.join(file_prefix, args.dataset, 'hists', config['model_name'])
+model_path = os.path.join(file_prefix, args.dataset, 'states', config['model_name'])
 
-hist_path = os.path.join(file_prefix, 'hists', config['model_name'])
-model_path = os.path.join(file_prefix, 'states', config['model_name'])
+# Set LR schedule
+lr_schedule = getattr(LRSchedule, args.lr_schedule)
+lr_schedule = functools.partial(lr_schedule, lr_init=args.lr_init, epochs=args.epochs)
 
 # --
 # Training helpers

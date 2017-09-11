@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
+# import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
 import torchvision
@@ -25,7 +25,7 @@ import torchvision.transforms as transforms
 from models import *
 from utils import progress_bar
 
-cudnn.benchmark = True
+# cudnn.benchmark = True
 
 # --
 # Params
@@ -104,7 +104,7 @@ def test(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        inputs, targets = Variable(inputs.cuda(), volatile=True), Variable(targets.cuda())
+        inputs, targets = Variable(inputs, volatile=True), Variable(targets)
         outputs = net(inputs)
         loss = F.cross_entropy(outputs, targets)
         
@@ -165,7 +165,7 @@ lr_schedule = lr_schedules[args.lr_schedule]
 
 batches_per_epoch = len(trainloader)
 
-net = nets[args.net]().cuda()
+net = nets[args.net]()
 print >> sys.stderr, net
 
 optimizer = optim.SGD(net.parameters(), lr=lr_schedule(0), momentum=0.9, weight_decay=5e-4)
@@ -190,7 +190,7 @@ for epoch in range(0, args.epochs):
         if args.lr_smooth:
             set_lr(optimizer, lr_schedule(epoch + batch_idx / batches_per_epoch))
         
-        data, targets = Variable(data.cuda()), Variable(targets.cuda())
+        data, targets = Variable(data), Variable(targets)
         
         optimizer.zero_grad()
         outputs = net(data)
