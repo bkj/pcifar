@@ -166,7 +166,12 @@ def eval(net, epoch, loader, mode='val'):
 # --
 # Train
 
-net = RNet(config['op_keys'], config['red_op_keys'], n_classes=ds['n_classes']).cuda() 
+net = RNet(
+    config['op_keys'],
+    config['red_op_keys'],
+    num_classes=ds['num_classes']
+).cuda() 
+
 print >> sys.stderr, net
 
 if args.hot_start:

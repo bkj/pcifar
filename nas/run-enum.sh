@@ -30,7 +30,8 @@ rm tmp
 # --
 # CIFAR100
 
-for CONFIG in $(find results/enum-0/configs/ -type f); do
+find results/enum-0/configs/ -type f | shuf > .tmp
+for CONFIG in $(cat .tmp); do
     echo $CONFIG
     CUDA_VISIBLE_DEVICES=0 python grid-point.py \
         --run enum-0 \
