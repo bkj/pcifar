@@ -55,8 +55,12 @@ def parse_args():
     
     config = args.config
     del args.config
-    if (not config) and (args.config_str):
+    if config:
+        config = json.load(open(config))
+    elif args.config_str:
         config = json.loads(args.config_str)
+    else:
+        config = None
     
     return args, config
 
@@ -66,31 +70,9 @@ print >> sys.stderr, 'grid-point.py: starting'
 # --
 # Params
 
-# Set outdir
+# Output
 file_prefix = os.path.join('results', args.run)
 
-# Set model architecture
-if not config:
-    print >> sys.stderr, 'sampling config'
-    config = sample_config()
-    config_path = os.path.join(file_prefix, 'configs', config['model_name'])
-    open(config_path, 'w').write(json.dumps(config))
-else:
-    print >> sys.stderr, 'loading config'
-    config = json.load(open(config))
-
-config.update({'args' : vars(args)})
-print >> sys.stderr, 'config: %s' % json.dumps(config)
-
-# Set dataset
-if args.dataset == 'CIFAR10':
-    ds = CIFAR(name='CIFAR10')
-elif args.dataset == 'CIFAR100':
-    ds = CIFAR(name='CIFAR100')
-else:
-    raise Exception('!! unknown dataset')
-
-# Set output
 p = os.path.join(file_prefix, 'configs')
 if not os.path.exists(p):
     _ = os.makedirs(p)
@@ -99,6 +81,26 @@ for p in ['states', 'hists']:
     p = os.path.join(file_prefix, args.dataset, p)
     if not os.path.exists(p):
         _ = os.makedirs(p)
+
+# Sample architecture, if one is not provided
+if not config:
+    print >> sys.stderr, 'sampling config'
+    config = sample_config()
+    config_path = os.path.join(file_prefix, 'configs', config['model_name'])
+    open(config_path, 'w').write(json.dumps(config))
+
+
+config.update({'args' : vars(args)})
+print >> sys.stderr, 'config: %s' % json.dumps(config)
+
+
+# Set dataset
+if args.dataset == 'CIFAR10':
+    ds = CIFAR(name='CIFAR10')
+elif args.dataset == 'CIFAR100':
+    ds = CIFAR(name='CIFAR100')
+else:
+    raise Exception('!! unknown dataset')
 
 hist_path = os.path.join(file_prefix, args.dataset, 'hists', config['model_name'])
 model_path = os.path.join(file_prefix, args.dataset, 'states', config['model_name'])
@@ -210,7 +212,6 @@ while epoch < args.epochs:
         else:
             print >> sys.stderr, 'grid-point.py: train_loss is NaN -- too many failures -- exiting'
             os._exit(0)
-    
     
     # Eval
     val_acc, val_loss = eval(net, epoch, ds['val_loader'], mode='val')
