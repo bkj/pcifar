@@ -64,7 +64,7 @@ def parse_args():
     elif args.config_str:
         config = json.loads(args.config_str)
     elif args.config_b64:
-        config = json.loads(base64.b64decode(config))
+        config = json.loads(base64.b64decode(args.config_b64))
     else:
         print >> sys.stderr, 'sampling config'
         config = sample_config()
