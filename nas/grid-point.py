@@ -61,7 +61,6 @@ def parse_args():
         config = json.load(open(config))
     elif args.config_str:
         config = json.loads(args.config_str)
-        config['model_name'] = md5(json.dumps(config)).hexdigest()
     else:
         config = None
     
