@@ -28,6 +28,21 @@ done
 rm tmp
 
 # --
+# CIFAR10 -- 20 epochs, cyclical learning rate
+
+find ./results/enum-0/hists -size +1k | xargs -I {} basename {} | shuf > tmp
+for CONFIG in $(cat tmp); do
+    echo $CONFIG
+    CUDA_VISIBLE_DEVICES=0 python grid-point.py \
+        --run enum-0 \
+        --config ./results/enum-0/configs/$CONFIG \
+        --epochs 20 \
+        --lr-schedule linear \
+        --train-history
+done
+rm tmp
+
+# --
 # CIFAR100
 
 find results/enum-0/configs/ -type f | shuf > .tmp

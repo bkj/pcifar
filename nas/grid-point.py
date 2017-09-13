@@ -12,7 +12,9 @@ import json
 import argparse
 import functools
 import numpy as np
+from hashlib import md5
 from tqdm import tqdm
+from datetime import datetime
 from collections import OrderedDict
 
 import torch
@@ -53,14 +55,18 @@ def parse_args():
     
     args = parser.parse_args()
     
+    # Load config
     config = args.config
-    del args.config
     if config:
         config = json.load(open(config))
     elif args.config_str:
         config = json.loads(args.config_str)
+        config['model_name'] = md5(json.dumps(config)).hexdigest()
     else:
         config = None
+    
+    del args.config
+    del args.config_str
     
     return args, config
 
@@ -221,6 +227,7 @@ while epoch < args.epochs:
     histfile.write(json.dumps({
         'epoch'              : epoch, 
         'lr'                 : lr_schedule(epoch + 1),
+        'timestamp'          : datetime.now().strftime('%Y:%m:%sT%H:%M:%S'),
         
         'train_acc'          : train_acc, 
         'train_loss'         : train_loss,

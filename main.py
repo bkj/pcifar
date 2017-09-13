@@ -11,6 +11,7 @@ import sys
 import json
 import argparse
 import numpy as np
+from time import time
 
 import torch
 import torch.nn as nn
@@ -182,6 +183,7 @@ for epoch in range(0, args.epochs):
     train_loss = 0
     correct = 0
     total = 0
+    t = time()
     for batch_idx, (data, targets) in enumerate(trainloader):
         
         # Set learning rate
@@ -201,10 +203,12 @@ for epoch in range(0, args.epochs):
         train_loss += loss.data[0]
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
-        correct += predicted.eq(targets.data).cpu().sum()
+        correct += 0 # predicted.eq(targets.data).cpu().sum()
         
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        # progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        
+        print batch_idx, time() - t
     
     train_acc = float(correct) / total
     
