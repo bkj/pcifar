@@ -15,7 +15,7 @@ for p in sys.argv[1:]:
     data = filter(None, map(smart_json_loads, open(p)))
     _ = plt.plot(data, alpha=0.5, label=p)
 
-_ = plt.ylim(0.5, 1.0)
+# _ = plt.ylim(0.5, 1.0)
 # _ = plt.xlim(0, 75)
-_ = plt.legend(loc='lower right')
+# _ = plt.legend(loc='lower right')
 show_plot()

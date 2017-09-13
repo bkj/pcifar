@@ -36,6 +36,7 @@ cudnn.benchmark = True
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str)
+    parser.add_argument('--config-str', type=str)
     parser.add_argument('--hot-start', action="store_true")
     
     parser.add_argument('--dataset', type=str, default='CIFAR10')
@@ -54,6 +55,9 @@ def parse_args():
     
     config = args.config
     del args.config
+    if (not config) and (args.config_str):
+        config = json.loads(args.config_str)
+    
     return args, config
 
 args, config = parse_args()
