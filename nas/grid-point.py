@@ -229,7 +229,7 @@ while epoch < args.epochs:
     histfile.write(json.dumps({
         'epoch'              : epoch, 
         'lr'                 : lr_schedule(epoch + 1),
-        'timestamp'          : datetime.now().strftime('%Y:%m:%sT%H:%M:%S'),
+        'timestamp'          : datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
         
         'train_acc'          : train_acc, 
         'train_loss'         : train_loss,

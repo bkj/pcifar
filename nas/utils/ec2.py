@@ -11,6 +11,15 @@ import uuid
 import json
 import boto3
 import base64
+import argparse
+import numpy as np
+from datetime import datetime
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--max-jobs', type=int, required=True)
+    parser.add_argument('--n-workers', type=int, required=True)
+    return parser.parse_args()
 
 # --
 # Helpers
@@ -18,6 +27,7 @@ import base64
 client = boto3.client('ec2')
 
 def make_cmd(configs, terminate=False):
+    print >> sys.stderr, len(configs)
     cmd = b"""#!/bin/bash
 
 echo '
@@ -41,7 +51,6 @@ python ./grid-point.py \
     --config-b64 $CONFIG \
     --epochs 20 \
     --lr-schedule linear \
-    --run ec2-0 \
     --run ec2 2>./logs/$MID.log || true
 
 export AWS_SHARED_CREDENTIALS_FILE=/home/ubuntu/.aws/credentials
@@ -56,13 +65,13 @@ chmod +x /home/ubuntu/run.sh
     
     for config in configs:
         cmd += """
-# su -c '/home/ubuntu/run.sh %s %s' -m ubuntu
+su -c '/home/ubuntu/run.sh %s %s' -m ubuntu
         """ % (config['model_name'], base64.b64encode(json.dumps(config)))
     
     if terminate:
         cmd += """
-            echo "terminating..."
-            sudo halt
+echo "terminating..."
+sudo halt
         """
     
     return cmd, base64.b64encode(cmd)
@@ -86,18 +95,26 @@ def launch_spot(cmd_b64, spot_price=0.25):
         }
     )
 
+
 # --
 # Run
 
 if __name__ == "__main__":
-    mid = str(uuid.uuid1())
-    config = {
-        "op_keys": ["double_bnconv_3", "identity", "add"], 
-        "red_op_keys": ["conv_1", "double_bnconv_3", "add"],
-        "model_name" : mid,
-    }
+    args = parse_args()
     
-    cmd_clear, cmd_b64 = make_cmd([config])
-    print >> sys.stderr, cmd_clear
-    res = launch_spot(cmd_b64)
-    print res['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+    configs = []
+    for line in sys.stdin:
+        config = json.loads(line.strip())
+        config['model_name'] += '-' + datetime.now().strftime('%Y%m%dT%H%M%S')
+        configs.append(config)
+    
+    if len(configs) > args.max_jobs:
+        raise Exception('too many configs!')
+    
+    config_chunks = np.array_split(configs, args.n_workers)
+    
+    for i, config_chunk in enumerate(config_chunks):
+        cmd_clear, cmd_b64 = make_cmd(config_chunk, terminate=True)
+        print >> sys.stderr, cmd_clear
+        print launch_spot(cmd_b64)
+
