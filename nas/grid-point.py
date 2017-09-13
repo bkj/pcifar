@@ -62,7 +62,8 @@ def parse_args():
     elif args.config_str:
         config = json.loads(args.config_str)
     else:
-        config = None
+        print >> sys.stderr, 'sampling config'
+        config = sample_config()
     
     del args.config
     del args.config_str
@@ -88,14 +89,11 @@ for p in ['states', 'hists']:
         _ = os.makedirs(p)
 
 # Sample architecture, if one is not provided
-if not config:
-    print >> sys.stderr, 'sampling config'
-    config = sample_config()
-    config_path = os.path.join(file_prefix, 'configs', config['model_name'])
+config.update({'args' : vars(args)})
+config_path = os.path.join(file_prefix, 'configs', config['model_name'])
+if not os.path.exists(config_path):
     open(config_path, 'w').write(json.dumps(config))
 
-
-config.update({'args' : vars(args)})
 print >> sys.stderr, 'config: %s' % json.dumps(config)
 
 
