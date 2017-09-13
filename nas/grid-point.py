@@ -9,6 +9,7 @@ from __future__ import division
 import os
 import sys
 import json
+import base64
 import argparse
 import functools
 import numpy as np
@@ -39,6 +40,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str)
     parser.add_argument('--config-str', type=str)
+    parser.add_argument('--config-b64', type=str)
     parser.add_argument('--hot-start', action="store_true")
     
     parser.add_argument('--dataset', type=str, default='CIFAR10')
@@ -61,12 +63,15 @@ def parse_args():
         config = json.load(open(config))
     elif args.config_str:
         config = json.loads(args.config_str)
+    elif args.config_b64:
+        config = json.loads(base64.b64.decode(config))
     else:
         print >> sys.stderr, 'sampling config'
         config = sample_config()
     
     del args.config
     del args.config_str
+    del args.config_b64
     
     return args, config
 
