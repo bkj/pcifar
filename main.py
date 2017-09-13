@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-# import torch.backends.cudnn as cudnn
+import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
 import torchvision
@@ -25,7 +25,7 @@ import torchvision.transforms as transforms
 from models import *
 from utils import progress_bar
 
-# cudnn.benchmark = True
+cudnn.benchmark = True
 
 # --
 # Params
@@ -75,7 +75,7 @@ transform_test = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), # !! ??
 ])
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_train)
+trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(
     trainset, 
     batch_size=128, 
@@ -84,7 +84,7 @@ trainloader = torch.utils.data.DataLoader(
     pin_memory=True
 )
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform_test)
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(
     testset, 
     batch_size=256, 
@@ -104,7 +104,7 @@ def test(epoch):
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        inputs, targets = Variable(inputs, volatile=True), Variable(targets)
+        inputs, targets = Variable(inputs, volatile=True).cuda(), Variable(targets).cuda()
         outputs = net(inputs)
         loss = F.cross_entropy(outputs, targets)
         
@@ -165,7 +165,7 @@ lr_schedule = lr_schedules[args.lr_schedule]
 
 batches_per_epoch = len(trainloader)
 
-net = nets[args.net]()
+net = nets[args.net]().cuda()
 print >> sys.stderr, net
 
 optimizer = optim.SGD(net.parameters(), lr=lr_schedule(0), momentum=0.9, weight_decay=5e-4)
@@ -190,7 +190,7 @@ for epoch in range(0, args.epochs):
         if args.lr_smooth:
             set_lr(optimizer, lr_schedule(epoch + batch_idx / batches_per_epoch))
         
-        data, targets = Variable(data), Variable(targets)
+        data, targets = Variable(data).cuda(), Variable(targets).cuda()
         
         optimizer.zero_grad()
         outputs = net(data)
