@@ -6,6 +6,7 @@
 
 import os
 import sys
+from tqdm import tqdm
 
 import numpy as np
 import pandas as pd
@@ -31,6 +32,7 @@ for config_path in config_paths:
     del config['args']
     configs.append(config)
 
+assert len(configs) > 0
 configs = pd.DataFrame(configs)
 configs = configs[['model_name', 'timestamp', 'epochs', 'lr_init', 'lr_schedule', 'op_keys', 'red_op_keys']]
 configs = configs.sort_values('timestamp').reset_index(drop=True)
@@ -87,6 +89,37 @@ show_plot()
 _ = hists[~hists.linear].groupby('model_name').test_acc.apply(lambda x: plt.plot(x.reset_index(drop=True), alpha=0.25))
 show_plot()
 
+# >>
+sub = hists[~hists.linear]
+sub['test_acc_adj'] = sub.groupby('model_name').val_acc.apply(lambda x: x - x.iloc[-1])
+sub['test_acc_adj_cent'] = sub.groupby('epoch').test_acc_adj.apply(lambda x: x - x.mean())
+
+_ = sub.groupby('model_name').test_acc_adj_cent.apply(lambda x: plt.plot(x.reset_index(drop=True), alpha=0.25))
+show_plot()
+
+all_res = []
+sub = hists[~hists.linear]
+for _ in tqdm(range(100)):
+    sel = sub.model_name.sample(100, replace=False)
+    z = sub[sub.model_name.isin(sel)]
+    top5 = set(z[z.epoch == 19].sort_values('val_acc').tail(10).model_name)
+    
+    res = []
+    for i in range(20):
+        tmp = set(z[z.epoch == i].sort_values('val_acc').tail(10).model_name)
+        res.append(len(tmp.intersection(top5)))
+    
+    all_res.append(res)
+
+all_res = np.vstack(all_res)
+
+_ = plt.plot(np.mean(all_res, axis=0))
+_ = plt.plot(np.mean(all_res_lin, axis=0))
+show_plot()
+
+# <<
+
+# --
 # Save as numpy arrays
 np.save('./results/1/lin_train_acc', np.vstack(hists[hists.linear].groupby('model_name').train_acc.apply(np.array)))
 np.save('./results/1/lin_val_acc', np.vstack(hists[hists.linear].groupby('model_name').val_acc.apply(np.array)))
