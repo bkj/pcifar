@@ -13,7 +13,9 @@ aws s3 ls s3://cfld-nas/results/ec2/CIFAR10/hists/ |\
     cut -d'-' -f1 > done
 
 mkdir -p results/ec2/CIFAR10/hists
+mkdir -p results/ec2/configs
 aws s3 cp --recursive s3://cfld-nas/results/ec2/CIFAR10/hists/ ./results/ec2/CIFAR10/hists/
+aws s3 cp --recursive s3://cfld-nas/results/ec2/configs/ ./results/ec2/configs/
 
 cd ./results/ec2/CIFAR10/hists/
 

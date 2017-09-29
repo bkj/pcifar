@@ -42,3 +42,13 @@ CUDA_VISIBLE_DEVICES=1 ./main.py --net $NET --epochs 50 --lr-schedule cyclical -
 
 CUDA_VISIBLE_DEVICES=1 ./main.py --net $NET --epochs 100 --lr-smooth > ./results/$NET-linear-100
 CUDA_VISIBLE_DEVICES=1 ./main.py --net $NET --epochs 100 --lr-schedule cyclical --lr-smooth > ./results/$NET-linear-100-cyc
+
+# --
+# Train the same model w/ different random states
+# How much does this change performance?  At the end?  At the beginning?
+# It may be that it's easier to estimate avg. final performance from N first epochs
+
+for d in $(seq 100); do
+    echo $d
+    CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 20 --lr-smooth --model-name resnet18-linear-20-$d > ./results/resnet18-linear-20-$d
+done

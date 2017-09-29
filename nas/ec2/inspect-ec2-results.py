@@ -15,12 +15,31 @@ from matplotlib import pyplot as plt
 
 pd.set_option('display.width', 200)
 
-# --
+root = './results/ec2/'
 
-root = './results/ec2/CIFAR10/hists/'
+# --
+# Load configs
+
+config_root = os.path.join(root, 'configs')
+
+configs = []
+config_paths = glob(os.path.join(config_root, '*'))
+for config_path in config_paths:
+    config = json.load(open(config_path))
+    config.update(config['args'])
+    del config['args']
+    configs.append(config)
+
+configs = pd.DataFrame(configs)
+
+
+# --
+# Load histories
+
+hist_root = os.path.join(root, 'CIFAR10/hists')
 
 hists = []
-hist_paths = glob(os.path.join(root, '*'))
+hist_paths = glob(os.path.join(hist_root, '*'))
 for hist_path in hist_paths:
     hist = map(json.loads, open(hist_path))
     
@@ -53,20 +72,39 @@ assert np.all(hists.model_name.value_counts() == 20)
 # --
 # Correlation between early and late epochs
 
-from scipy.stats import spearmanr
+# >>
+# subset to cyclical LR
 
-f = np.array(hists[hists.epoch == 19].val_acc)
-i = np.array(hists[hists.epoch == 1].val_acc)
+configs = configs[configs.lr_schedule == 'cyclical']
 
-sel_a = np.random.choice(f.shape[0], 100000)
-sel_b = np.random.choice(f.shape[0], 100000)
+hists = hists[hists.model_name.isin(configs.model_name)]
+configs = configs[configs.model_name.isin(hists.model_name)]
 
-((f[sel_a] > f[sel_b]) == (i[sel_a] > i[sel_b])).mean()
+X_orig = np.vstack(hists.groupby('model_name').val_acc.apply(np.array))
+X_orig = X_orig[np.argsort(X_orig[:,0])]
 
+cs = np.linspace(0, 1, X_orig.shape[0])
+for c,h in zip(cs, X_orig):
+    _ = plt.plot(h, c=plt.cm.rainbow(c), alpha=0.10)
 
+_ = plt.xlim(0, 2)
+_ = plt.ylim(0.69, 0.720)
+show_plot()
 
+# <<
 
-# --
+# >>
+
+from scipy.spatial.distance import pdist, squareform
+
+sub = hists[hists.epoch == 19]
+ds = squareform(pdist(np.array(sub.val_acc).reshape(-1, 1), metric='cityblock'))
+_ = plt.plot(np.sort(np.hstack(ds)), np.linspace(0, 1, np.prod(ds.shape)))
+show_plot()
+(ds < 0.006).mean()
+
+# <<
+
 
 # --
 # Plot
@@ -79,13 +117,13 @@ show_plot()
 
 X_orig = np.vstack(hists.groupby('model_name').val_acc.apply(np.array)).T
 
-R = 2
+R = 1
 alpha = 0.5
 X = X_orig.copy()
 
 popsize = X.shape[1]
 
-pers = np.arange(R, 20, R)
+pers = [1] + list(np.arange(R, 20, R))
 
 for p in pers:
     popsize = int(np.ceil(alpha * popsize))
@@ -109,30 +147,4 @@ float((X > 0).sum()) / np.prod(X.shape) # x% of the computation
 float((X > 0).sum()) / X.shape[0] # y times more than necessary
 (X > 0).sum(axis=1)
 (X[-1].max() < X_orig[-1]).mean() 
-
-# model in top 1%, using 20% of the computation
-
-# --
-# Model selection w/ hyperband (using earlier stopping)
-
-X = X_orig.copy()
-# train_sel = np.random.choice(X.shape[1], 50)
-# train = X[:,train_sel].T
-
-from sklearn.svm import SVR
-from sklearn.decomposition import PCA, TruncatedSVD
-
-X = X[:,X[-1] > 0.6]
-
-svd = TruncatedSVD(n_components=9)
-z = svd.fit_transform(X[:10].T)
-
-np.corrcoef(z[:,0], X.T[:,-1])[0,1]
-np.corrcoef(X.T[:,9], X.T[:,-1])[0,1]
-
-
-
-
-
-
 
