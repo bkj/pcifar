@@ -75,33 +75,26 @@ assert np.all(hists.model_name.value_counts() == 20)
 # >>
 # subset to cyclical LR
 
-configs = configs[configs.lr_schedule == 'cyclical']
-
-hists = hists[hists.model_name.isin(configs.model_name)]
-configs = configs[configs.model_name.isin(hists.model_name)]
-
-X_orig = np.vstack(hists.groupby('model_name').val_acc.apply(np.array))
-X_orig = X_orig[np.argsort(X_orig[:,0])]
-
-cs = np.linspace(0, 1, X_orig.shape[0])
-for c,h in zip(cs, X_orig):
-    _ = plt.plot(h, c=plt.cm.rainbow(c), alpha=0.10)
-
-_ = plt.xlim(0, 2)
-_ = plt.ylim(0.69, 0.720)
-show_plot()
-
-# <<
-
-# >>
-
+from scipy.stats import spearmanr
 from scipy.spatial.distance import pdist, squareform
+import seaborn as sns
 
-sub = hists[hists.epoch == 19]
-ds = squareform(pdist(np.array(sub.val_acc).reshape(-1, 1), metric='cityblock'))
-_ = plt.plot(np.sort(np.hstack(ds)), np.linspace(0, 1, np.prod(ds.shape)))
+def sp_corr(x, y):
+    return spearmanr(x, y).correlation
+
+sel = hists.model_name.isin(configs.model_name[configs.lr_schedule == 'cyclical'])
+X_orig = np.vstack(hists[sel].groupby('model_name').val_acc.apply(np.array)).T
+cyc_sp_corrs = squareform(pdist(X_orig, metric=sp_corr))
+
+sel = hists.model_name.isin(configs.model_name[configs.lr_schedule == 'linear'])
+X_orig = np.vstack(hists[sel].groupby('model_name').val_acc.apply(np.array)).T
+lin_sp_corrs = squareform(pdist(X_orig, metric=sp_corr))
+
+_ = sns.heatmap(cyc_sp_corrs - lin_sp_corrs)
 show_plot()
-(ds < 0.006).mean()
+# !! Interesting -- first epoch of _linear_ schedule is more correlated w/
+# later performance.  But second epoch of _cyclical_ does better
+# Again, raises the question of what the best LR schedule is for early model differentiation
 
 # <<
 

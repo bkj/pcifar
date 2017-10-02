@@ -6,19 +6,21 @@ RUN apt-get install -y git wget
 
 # Install anaconda
 RUN wget https://repo.continuum.io/archive/Anaconda2-4.4.0-Linux-x86_64.sh
-RUN bash Anaconda2-4.4.0-Linux-x86_64.sh -b -p $HOME/.anaconda
+RUN bash Anaconda2-4.4.0-Linux-x86_64.sh -b -p /root/.anaconda
 RUN rm Anaconda2-4.4.0-Linux-x86_64.sh
+RUN echo 'export PATH="/root/.anaconda/bin:$PATH"' >> ~/.bashrc 
+ENV PATH="/root/.anaconda/bin:${PATH}"
 
 # Install packages
 RUN pip install tqdm keras
-RUN conda install -y pytorch torchvision cuda80 -c soumith
-RUN conda install -y tensorflow-gpu
-RUN conda install -y -c conda-forge awscli
-RUN apt install -y jq
+# RUN conda install -y pytorch torchvision cuda80 -c soumith
+# RUN conda install -y tensorflow-gpu
+# RUN conda install -y -c conda-forge awscli
+# RUN apt install -y jq
 
-# Install pcifar
-ADD ./install-pcifar.sh /root/install-pcifar.sh
-RUN chmod -x /root/install-pcifar.sh
-RUN sh /root/install-pcifar.sh
+# # Install pcifar
+# ADD ./install-pcifar.sh /root/install-pcifar.sh
+# RUN chmod -x /root/install-pcifar.sh
+# RUN sh /root/install-pcifar.sh
 
 CMD /bin/bash
