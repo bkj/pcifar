@@ -120,8 +120,7 @@ class PreActBlock(nn.Module):
         shortcut = self.shortcut(out) if hasattr(self, 'shortcut') else x
         out = self.conv1(out)
         out = self.conv2(F.relu(self.bn2(out)))
-        out += shortcut
-        return out
+        return out + shortcut
 
 
 class DeadPreActBlock(nn.Module):

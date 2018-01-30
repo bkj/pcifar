@@ -4,7 +4,7 @@
     main.py
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 import os
 import sys
@@ -36,17 +36,16 @@ cudnn.benchmark = True
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--net', type=str, default='resnet18')
-    parser.add_argument('--model-name', type=str)
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--lr-schedule', type=str, default='linear')
     parser.add_argument('--lr-init', type=float, default=0.1)
     
     parser.add_argument('--train-size', type=float, default=1.0)
     parser.add_argument('--seed', type=int, default=123)
+    parser.add_argument('--reduce-p-survive', action="store_true")
     
     args = parser.parse_args()
-    if not args.model_name:
-        args.model_name = '%s-%s-%d' % (args.net.lower(), args.lr_schedule, args.epochs)
+    args.model_name = '%s-%s-%d' % (args.net.lower(), args.lr_schedule, args.epochs)
     return args
 
 args = parse_args()
@@ -54,6 +53,7 @@ args = parse_args()
 nets = {
     'vgg' : VGG,
     'resnet18' : ResNet18,
+    'stochastic_resnet18' : StochasticResNet18,
     'deadnet18' : DeadNet18,
     'resnet34' : ResNet34,
     'nonet34' : NoNet34,
@@ -141,13 +141,13 @@ def do_eval(epoch, dataloader):
     return float(correct) / total
 
 
-lr_scheduler = LRSchedule.linear(lr_init=args.lr_init, epochs=args.epochs)
+lr_scheduler = getattr(LRSchedule, args.lr_schedule)(lr_init=args.lr_init, epochs=args.epochs)
 
 # --
 # Define model
 
 net = nets[args.net]().cuda()
-print >> sys.stderr, net
+print(net, file=sys.stderr)
 
 optimizer = optim.SGD(net.parameters(), lr=lr_scheduler(0), momentum=0.9, weight_decay=5e-4)
 
@@ -155,7 +155,11 @@ optimizer = optim.SGD(net.parameters(), lr=lr_scheduler(0), momentum=0.9, weight
 # Train
 
 for epoch in range(0, args.epochs):
-    print >> sys.stderr, "Epoch=%d" % epoch
+    print("Epoch=%d" % epoch, file=sys.stderr)
+    
+    if args.reduce_p_survive:
+        if args.net == 'stochastic_resnet18':
+            net.set_p_survive([1.0, 0.7, 0.7, 0.7])
     
     _ = net.train()
     train_loss, correct, total = 0, 0, 0
@@ -163,6 +167,7 @@ for epoch in range(0, args.epochs):
     for batch_idx, (data, targets) in enumerate(trainloader):
         data, targets = Variable(data).cuda(), Variable(targets).cuda()
         
+        print(lr_scheduler(epoch + batch_idx / batches_per_epoch), file=sys.stderr)
         LRSchedule.set_lr(optimizer, lr_scheduler(epoch + batch_idx / batches_per_epoch))
         
         optimizer.zero_grad()
@@ -172,7 +177,7 @@ for epoch in range(0, args.epochs):
         optimizer.step()
         
         train_loss += loss.data[0]
-        _, predicted = torch.max(outputs.data, 1)
+        predicted = torch.max(outputs.data, 1)[1]
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
         
@@ -180,20 +185,20 @@ for epoch in range(0, args.epochs):
             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
     train_acc = float(correct) / total
-    val_acc = do_eval(epoch, valloader) if args.train_size < 1 else None
-    test_acc = do_eval(epoch, testloader)
+    val_acc   = do_eval(epoch, valloader) if args.train_size < 1 else None
+    test_acc  = do_eval(epoch, testloader)
     
-    print json.dumps({
+    print(json.dumps({
         'epoch'     : epoch,
         'train_acc' : train_acc,
         'val_acc'   : val_acc,
         'test_acc'  : test_acc,
-    })
+    }))
 
 
-# if not os.path.exists('./results/states'):
-#     _ = os.makedirs('./results/states')
+if not os.path.exists('./results/states'):
+    _ = os.makedirs('./results/states')
 
-# model_path = os.path.join('results', 'states', args.model_name)
-# print >> sys.stderr, 'saving model: %s' % model_path
-# torch.save(net.state_dict(), model_path)
+model_path = os.path.join('results', 'states', args.model_name)
+print('saving model: %s' % model_path, file=sys.stderr)
+torch.save(net.state_dict(), model_path)
