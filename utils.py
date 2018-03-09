@@ -7,9 +7,17 @@ import os
 import sys
 import time
 import math
+import numpy as np
 
+import torch
 import torch.nn as nn
 import torch.nn.init as init
+
+
+def set_seeds(seed):
+    np.random.seed(seed)
+    _ = torch.manual_seed(seed + 123)
+    _ = torch.cuda.manual_seed(seed + 456)
 
 
 def get_mean_and_std(dataset):

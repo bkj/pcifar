@@ -258,8 +258,8 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_planes = 64
         
-        self.conv1 = conv3x3(3,64)
-        self.bn1 = nn.BatchNorm2d(64)
+        self.conv1 = conv3x3(3,self.in_planes)
+        self.bn1 = nn.BatchNorm2d(self.in_planes)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)

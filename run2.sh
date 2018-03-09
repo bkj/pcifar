@@ -56,3 +56,38 @@ python utils/plot.py \
     ./results/stochastic-resnet18-cyclical-100 \
     ./results/stochastic-resnet18-cyclical-100-red-1987 \
     ./results/stochastic-resnet18-cyclical-100-red-1777
+
+# --
+# Pipenet
+
+CUDA_VISIBLE_DEVICES=1 ./main.py \
+    --net pipenet \
+    --lr-schedule cyclical \
+    --epochs 20 > ./results/pipenet-cyclical-20
+
+CUDA_VISIBLE_DEVICES=1 ./main.py \
+    --net pipenet \
+    --lr-schedule cyclical \
+    --train-size 0.9 \
+    --epochs 20 > ./results/pipenet-cyclical-20-0.900000
+
+CUDA_VISIBLE_DEVICES=1 ./main.py \
+    --net pipenet \
+    --lr-schedule constant \
+    --lr-init 0.01 \
+    --epochs 20 > ./results/pipenet-constant-20-0.01
+
+CUDA_VISIBLE_DEVICES=1 ./main.py \
+    --net pipenet \
+    --lr-schedule constant \
+    --lr-init 0.1 \
+    --epochs 50 > ./results/pipenet-constant-50-0.1
+
+CUDA_VISIBLE_DEVICES=1 ./main.py \
+    --net pipenet \
+    --lr-schedule constant \
+    --lr-init 0.01 \
+    --train-size 0.9 \
+    --epochs 50 > ./results/pipenet-constant-50-0.01-augment-0.900000
+
+CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 200 --lr-schedule linear --lr-init 0.1 > ./results/resnet18-linear-200.v2
