@@ -81,16 +81,19 @@ nets = {
 # --
 # IO
 
+# STD = (0.2023, 0.1994, 0.2010)
+STD = (0.24705882352941178, 0.24352941176470588, 0.2615686274509804)
+
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), STD),
 ])
 
 transform_test = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), STD),
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform_train)
@@ -144,7 +147,7 @@ def do_eval(epoch, dataloader):
         
         test_loss += to_numpy(loss.data[0])
         _, predicted = torch.max(outputs.data, 1)
-        total += targets.size(0)
+        total += targets.shape[0]
         correct += to_numpy(predicted.eq(targets.data).cpu().sum())
         
         progress_bar(batch_idx, len(dataloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
@@ -160,7 +163,8 @@ lr_scheduler = getattr(LRSchedule, args.lr_schedule)(lr_init=args.lr_init, epoch
 
 net = nets[args.net]().cuda()
 
-optimizer = optim.SGD(net.parameters(), lr=lr_scheduler(0), momentum=0.9, weight_decay=5e-4)
+parameters = filter(lambda x: x.requires_grad, net.parameters())
+optimizer = optim.SGD(parameters, lr=lr_scheduler(0), momentum=0.9, weight_decay=5e-4)
 
 if args.net == 'pipenet':
     print('setting pipes', file=sys.stderr)
@@ -180,7 +184,7 @@ for epoch in range(args.epochs):
     for batch_idx, (data, targets) in enumerate(trainloader):
         data, targets = Variable(data).cuda(), Variable(targets).cuda()
         
-        # LRSchedule.set_lr(optimizer, lr_scheduler(epoch + batch_idx / batches_per_epoch))
+        LRSchedule.set_lr(optimizer, lr_scheduler(epoch + batch_idx / batches_per_epoch))
         
         optimizer.zero_grad()
         outputs = net(data)
@@ -188,13 +192,13 @@ for epoch in range(args.epochs):
         loss.backward()
         optimizer.step()
         
-        # train_loss += to_numpy(loss.data[0])
-        # predicted  = torch.max(outputs.data, 1)[1]
-        # total      += targets.shape[0]
-        # correct    += to_numpy(predicted.eq(targets.data).cpu().sum())
+        train_loss += to_numpy(loss.data[0])
+        predicted  = torch.max(outputs.data, 1)[1]
+        total      += targets.shape[0]
+        correct    += to_numpy(predicted.eq(targets.data).cpu().sum())
         
-        progress_bar(batch_idx, batches_per_epoch)# , 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            # % (to_numpy(train_loss)/(batch_idx+1), 100.*correct/total, correct, total))
+        progress_bar(batch_idx, batches_per_epoch, 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     
     print(json.dumps({
         'epoch'     : epoch,

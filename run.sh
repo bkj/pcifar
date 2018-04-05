@@ -10,7 +10,7 @@ CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 10 > ./results/resnet18-linear-10
 # !! Retrying w/ learning rate that changes every batch
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 10 > ./results/resnet18-linear-10
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 25 > ./results/resnet18-linear-25
-CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 50 > ./results/resnet18-linear-50
+CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 50 > ./results/resnet18-linear-50-nobnlearn
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 75 > ./results/resnet18-linear-75
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 100 > ./results/resnet18-linear-100
 CUDA_VISIBLE_DEVICES=1 ./main.py --epochs 150 > ./results/resnet18-linear-150

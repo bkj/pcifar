@@ -22,6 +22,7 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 
+torch.backends.cudnn.benchmark = True
 
 # --
 # Model definition
